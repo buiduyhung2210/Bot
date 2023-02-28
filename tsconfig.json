@@ -1,0 +1,68 @@
+{
+  "compilerOptions": {
+    "strictPropertyInitialization": false,
+    "resolveJsonModule": true,
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es6",
+    "noImplicitAny": true,
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "outDir": "dist",
+    "baseUrl": "./src",
+    "allowJs": true,
+    "checkJs": true,
+    "lib": [
+      "es2019.object"
+    ],
+    "paths": {
+      "*": [
+        "../node_modules/*",
+        "./types/*"
+      ],
+      "@configs/*": [
+        "./configs/*"
+      ],
+      "@models/*": [
+        "./models/*"
+      ],
+      "@services/*": [
+        "./services/*"
+      ],
+      "@database/*": [
+        "./database/*"
+      ],
+      "@util/*": [
+        "./util/*"
+      ],
+      "@libs/*": [
+        "./libs/*"
+      ],
+      "@controllers/*": [
+        "./controllers/*"
+      ],
+      "@middleware/*": [
+        "./middleware/*"
+      ],
+      "@chats/*": [
+        "./chats/*"
+      ],
+      "@jobs/*": [
+        "./jobs/*"
+      ],
+      "@workers/*": [
+        "./workers/*"
+      ],
+    }
+  },
+  "include": [
+    "./src/**/*",
+    ".sequelizerc"
+  ],
+  "exclude": [
+    "./src/database/migrations/*",
+    "./src/database/seeders/*",
+    "./src/database/masters/*"
+  ]
+}
