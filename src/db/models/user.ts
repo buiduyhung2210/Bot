@@ -3,10 +3,11 @@ import connection from "../../config/dbConnect";
 
 interface UserAttributes {
   id?: number,
-  Name?: string | null,
+  fullName?: string | null,
   teleId: string | null,
   balance?: number,
-
+  password?: string,
+  isLogin?: boolean,
   createdAt?: Date,
   updatedAt?: Date
 }
@@ -16,11 +17,11 @@ export interface UserOutput extends Required<UserAttributes> { }
 
 class User extends Model<UserAttributes, UserInput> implements UserAttributes {
   public id!: number;
-  public Name!: string;
+  public fullName!: string;
   public teleId!: string;
   public balance?: number;
-
-
+  public password!: string;
+  public isLogin?: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -32,8 +33,10 @@ User.init({
     primaryKey: true,
     type: DataTypes.INTEGER
   },
-  Name: {
-    allowNull: true,
+  fullName: {
+    type: DataTypes.STRING
+  },
+  password: {
     type: DataTypes.STRING
   },
   teleId: {
@@ -43,6 +46,10 @@ User.init({
   balance: {
     type: DataTypes.NUMBER,
     defaultValue: 0,
+  },
+  isLogin:{
+    type: DataTypes.BOOLEAN,
+    defaultValue:false
   }
 }, {
   timestamps: true,
