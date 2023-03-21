@@ -54,15 +54,15 @@ bot.command('balance', async (ctx) => {
 
 const transferByIdWizard = new WizardScene('transfer-by-id',
 	(ctx: any) => {
-		ctx.reply('Please enter reciver ID');
+		ctx.reply('Please enter receiver ID');
 		return ctx.wizard.next();
 	},
 	async (ctx) => {
-		const reciver = await UserController.getUser({ teleId: ctx.message.text + '' });
+		const receiver = await UserController.getUser({ teleId: ctx.message.text + '' });
 
-		if (reciver) {
+		if (receiver) {
 			ctx.reply('Please enter amount of money');
-			ctx.session.reciver = reciver.dataValues
+			ctx.session.receiver = receiver.dataValues
 			return ctx.wizard.next();
 		}
 		else {
@@ -73,11 +73,11 @@ const transferByIdWizard = new WizardScene('transfer-by-id',
 	async (ctx) => {
 		const data = { teleId: ctx.from.id + '' };
 		const user = await UserController.getUser(data);
-		const reciver = ctx.session.reciver
-		console.log(reciver)
+		const receiver = ctx.session.receiver
+		console.log(receiver)
 		if (parseInt(ctx.message.text) > user.balance || parseInt(ctx.message.text) < 0) { ctx.reply('Invalid balance'); return }
 		else {
-			await UserController.updateBalance({ teleId: reciver.teleId, money: reciver.balance + parseInt(ctx.message.text) });
+			await UserController.updateBalance({ teleId: receiver.teleId, money: receiver.balance + parseInt(ctx.message.text) });
 			await UserController.updateBalance({ teleId: ctx.from.id, money: user.balance - parseInt(ctx.message.text) })
 		}
 		return ctx.scene.leave();
