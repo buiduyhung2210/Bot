@@ -29,18 +29,18 @@ const getUser = async (req: {teleId:string}) =>{
 		console.log(error)
 	}
 }
-const  updateBalance = async (req:{teleId:string},money:string) =>{
+const  updateBalance = async (req:{teleId:string,money:number}) =>{
 	try {
-		const user = await User.update({balance: Sequelize.literal(`balance + ${money}`)},{
+		const user = await User.update({balance: Sequelize.literal(`balance + ${req.money}`)},{
 			where:{teleId:req.teleId}
 		})
 	} catch (error) {
 		console.log(error)
 	}
 }
-const updateLogin = async (req:{teleId:string},isLogin:boolean) =>{
+const updateLogin = async (req:{teleId:string,isLogin:boolean}) =>{
 	try{
-		const user = await User.update({isLogin},{where:{teleId:req.teleId}})
+		const user = await User.update({isLogin:req.isLogin},{where:{teleId:req.teleId}})
 	}
 	catch(error){
 		console.log(error);
