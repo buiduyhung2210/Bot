@@ -4,10 +4,11 @@ import connection from "../../config/dbConnect";
 interface UserAttributes {
   id?: number,
   fullName?: string | null,
+  phoneNumber?: string,
   teleId: string | null,
   balance?: number,
-  password?: string,
   isLogin?: boolean,
+  password?: string,
   createdAt?: Date,
   updatedAt?: Date
 }
@@ -17,11 +18,14 @@ export interface UserOutput extends Required<UserAttributes> { }
 
 class User extends Model<UserAttributes, UserInput> implements UserAttributes {
   public id!: number;
-  public fullName!: string;
+  public fullName?: string;
+  public password?: string;
+  public phoneNumber?: string;
   public teleId!: string;
   public balance?: number;
-  public password!: string;
   public isLogin?: boolean;
+
+
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -34,13 +38,17 @@ User.init({
     type: DataTypes.INTEGER
   },
   fullName: {
+    allowNull: true,
+    type: DataTypes.STRING
+  },
+  teleId: {
+    unique: true,
     type: DataTypes.STRING
   },
   password: {
     type: DataTypes.STRING
   },
-  teleId: {
-    unique: true,
+  phoneNumber: {
     type: DataTypes.STRING
   },
   balance: {

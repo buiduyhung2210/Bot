@@ -13,6 +13,9 @@ module.exports = {
       fullName: {
         type: Sequelize.STRING
       },
+      phoneNumber: {
+        type: Sequelize.STRING,
+      },
       teleId: {
         type: Sequelize.STRING,
         unique: true
@@ -24,7 +27,7 @@ module.exports = {
       password: {
         type: Sequelize.STRING,
       },
-      isLogin:{
+      isLogin: {
         type: Sequelize.BOOLEAN,
         defaultValue: false
       },

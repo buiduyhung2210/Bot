@@ -6,6 +6,8 @@ interface TransactionAttributes {
   sendId?: string | null,
   receiveId: string | null,
   amount?: number,
+  balanceSend?: number,
+  balanceReceive?: number,
   createdAt?: Date,
   updatedAt?: Date
 }
@@ -18,6 +20,8 @@ class Transaction extends Model<TransactionAttributes, TransactionInput> impleme
   public sendId!: string;
   public receiveId!: string;
   public amount?: number;
+  public balanceSend?: number;
+  public balanceReceive?: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -40,12 +44,18 @@ Transaction.init({
     type: DataTypes.NUMBER,
     defaultValue: 0,
   },
+  balanceSend: {
+    type: DataTypes.NUMBER,
+  },
+  balanceReceive: {
+    type: DataTypes.NUMBER,
+  },
   
 }, {
   timestamps: true,
   sequelize: connection,
   underscored: false,
-  tableName: "User"
+  tableName: "Transaction"
 });
 
 export default Transaction;
