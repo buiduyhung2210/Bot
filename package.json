@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": { 
+    "node": "14.x"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/index.ts"
@@ -25,6 +28,7 @@
     "express": "^4.18.2",
     "mysql2": "^2.3.3",
     "sequelize": "^6.25.5",
-    "telegraf": "^4.12.2"
+    "telegraf": "^4.12.2",
+    "twilio": "^4.9.0"
   }
 }

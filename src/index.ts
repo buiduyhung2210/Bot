@@ -1,188 +1,246 @@
-import express, { Request, Response } from "express";
+import express, { raw, Request, response, Response } from "express";
 import UserController from "./controllers/UserController";
-import bcrypt from "bcryptjs"
+import TransactionController from "./controllers/TransactionController";
+import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-import { Telegraf,Scenes, session,Markup } from 'telegraf';
+import { Telegraf, Scenes, session,Markup } from 'telegraf';
+
 dotenv.config();
-const hashCode  = (password:string) => bcrypt.hashSync(password,bcrypt.genSaltSync(8));
-const validatePassword = (password:string) =>{
-	if(password.length<8){
-	  return false;
-	}
-	// Check for at least 1 letter, 1 special character and 1 digit character
-	const letterRegex = /[a-zA-Z]/;
-	const specialRegex = /\W/;
-	const digitRegex = /\d/;
-	if(!specialRegex.test(password) || !letterRegex.test(password) || !digitRegex.test(password)){
-	  return false;
-	}
-	return true;
-  }
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
-const {Stage,WizardScene} = Scenes;
+const { Stage, WizardScene } = Scenes;
 
+const helpMessage = `
+Say something to me
+/start - start bot
+/help - more command
+/login - login
+/register -register
+/balance - check your balance
+/transfer - transfer money
+/history - transaction history
+`;
 
 bot.start((ctx) => {
-	ctx.reply('Welcome');
-	console.log(ctx);
-
+	bot.telegram.sendMessage(ctx.from.id,'Hi i am a cool bot');
 })
-bot.help((ctx) => ctx.reply('Send me a sticker'))
-bot.command('balance', async (ctx)=>{
-	const data = {teleId:ctx.from.id+''};
+bot.help((ctx) => bot.telegram.sendMessage(ctx.from.id,helpMessage))
+bot.command('balance', async (ctx) => {
+	const data = { teleId: ctx.from.id + '' };
 	const user = await UserController.getUser(data);
-	if(user){
-	  ctx.reply(`UserName: ${user.fullName}\nteleId:${user.teleId}\nCreatedAt: ${user.createdAt}\nAccountBalance: ${user.balance}`);
-	}
-	else{
-	  ctx.reply('You don\'t have account. Please create a new account!')
-	}
-  })
-
-const registerWizard = new WizardScene('register-wizard',
-	(ctx:any) => {
-	ctx.reply('Please enter your password(at least 8 characters, 1 letter and 1 special character)');
-	return ctx.wizard.next();
-	},
-	async (ctx) =>{
-	if (validatePassword(ctx.message.text)) {
-		const data ={
-			teleId: ctx.from.id,
-			fullName: ctx.from.first_name+ctx.from.last_name,
-			password: hashCode(ctx.message.text)
-			};
-		const create = await UserController.createUser(data);
-		if(create){
-		ctx.reply('successfully!');
-		} 
-		else {
-		ctx.reply('failed! account is used.');
+	if (user) {
+		if(user.isLogin){
+			bot.telegram.sendMessage(ctx.from.id,`UserName: ${user.fullName}\nteleId:${user.teleId}\nCreatedAt: ${user.createdAt}\nAccountBalance: ${user.balance}`);
 		}
-	return ctx.scene.leave();
-	} 
+		else{
+			bot.telegram.sendMessage(ctx.from.id,'Please login your account!');
+		}
+	}
 	else {
-	ctx.reply('Invalid password. Please try again.');
-	return;
+		bot.telegram.sendMessage(ctx.from.id,'You don\'t have account. Please create a new account!')
 	}
-});
-const loginWizard = new WizardScene('login-wizard',
-	async (ctx:any) =>{
-	const user = await UserController.getUser({teleId: ctx.from.id+''});
-	const isRegister = user!=null?true:false;
-	if(isRegister){
-		ctx.reply('Please enter your password');
-	//   Save user in ctx.session
-		ctx.session.user = user;
-		console.log(ctx.session.user);
-		return ctx.wizard.next();
+})
+bot.command('history',async (ctx) =>{
+	const transHistory = await TransactionController.getTransactions({sendId:ctx.from.id+''});
+	if(transHistory.length ===0){
+		bot.telegram.sendMessage(ctx.from.id,'You have not made any transactions yet!');
 	}
-	else{
-		ctx.reply('You don\'t have account. Please /register a new account!');
-		return ctx.scene.leave();
+	else {
+		bot.telegram.sendMessage(ctx.from.id,transHistory.join('\n'));
 	}
-	},
-	async (ctx) =>{
-	// Get user from session
-	const user = ctx.session.user;
-	const isPassword = bcrypt.compareSync(ctx.message.text,user.password);
-			if(isPassword){
-			await UserController.updateLogin({ teleId:user.teleId+'' },true);
-			ctx.reply('Login successful');
-			return ctx.scene.leave();
-			}
-			else{
-			ctx.reply('Your password is incorrect');
-			return;
-			}
-	}
-);
+})
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-const transfer = new WizardScene('transfer-wizard',
-	async (ctx:any) => {
+const transferByIdWizard = new WizardScene('transfer-by-id',
+	async (ctx: any) => {
 		const user = await UserController.getUser({teleId:ctx.from.id+''});
+		ctx.session.balance  = user.balance;
 		if(!user.isLogin){
-			ctx.reply('Please login first');
+			bot.telegram.sendMessage(ctx.from.id,'Please login your account!');
 			return ctx.scene.leave();
 		}
 		else {
-			const balance = user?.balance || 0;
-			// save balance for next step
-			ctx.session.balance = balance;
-			ctx.reply(`accountBalance: ${balance}. Please enter the amount you want to transfer`,
-			Markup.keyboard(['Cancel']).resize());
+			bot.telegram.sendMessage(ctx.from.id,'Please enter reciver ID');
+
+		}
+		return ctx.wizard.next();
+	},
+	async (ctx) => {
+		const reciver = await UserController.getUser({ teleId: ctx.message.text + '' });
+		// const inlineKeyboards = Markup.inlineKeyboard([
+		// 	Markup.button.callback('Confirm','confirm'),
+		// 	Markup.button.callback('Cancel','cancel')
+		// ])
+		if (reciver && reciver.teleId!= ctx.from.id) {
+			bot.telegram.sendMessage(ctx.from.id,'Please enter amount of money');
+			ctx.session.reciver = reciver.dataValues
 			return ctx.wizard.next();
 		}
+		else {
+			bot.telegram.sendMessage(ctx.from.id,'Invalid ID. Please try again.');
+			// return ctx.wizard.selectStep(3);
+		}
 	},
-	(ctx) =>{
-		if(/^\d+$/.test(ctx.message.text)){
-			const amount  = parseInt(ctx.message.text);
-			const transferKeyboard = Markup.inlineKeyboard([
-				Markup.button.callback('Confirm', 'confirm'),
-				Markup.button.callback('Cancel', 'cancel')
-			]);
-			if(amount>ctx.session.balance){
-				ctx.reply('Not enough money. Please try again!');
+
+	async (ctx) => {
+		const data = { teleId: ctx.from.id + '' };
+		const user = await UserController.getUser(data);
+		if (parseInt(ctx.message.text) > user.balance || parseInt(ctx.message.text) <= 0) { bot.telegram.sendMessage(ctx.from.id,'Invalid balance'); return }
+		else {
+			ctx.session.amount = ctx.message.text;
+			const otp =UserController.generateOTP();;
+			ctx.session.otp = otp;
+
+			UserController.sendSMS(user.phoneNumber,otp);
+			bot.telegram.sendMessage(ctx.from.id,'Please enter otp code: ');
+			
+		}
+		return ctx.wizard.next();
+
+	},
+	async (ctx) =>{
+		if(ctx.message?.text===ctx.session.otp){
+			const reciver = ctx.session.reciver;
+
+			const amount = ctx.session.amount;
+			await UserController.updateBalance({ teleId: reciver.teleId, money: reciver.balance + parseInt(amount) });
+			await UserController.updateBalance({ teleId: ctx.from.id, money: ctx.session.balance - parseInt(amount) })
+			// bot.telegram.sendMessage(reciver.teleId,'successful transaction');
+			const trans = {
+				sendId:ctx.from.id+'',
+				receiveId:reciver.teleId,
+				amount: amount,
+				balanceSend: ctx.session.balance - parseInt(amount),
+				balanceReceive: reciver.balance + parseInt(amount)
 			}
-			else{
-				// ctx.reply(`To which account number do you want to transfer ${amount} VND?\nEnter an account number or select it from the list then click Confirm`,
-				// 			transferKeyboard);
-				ctx.session.amount =amount;
-				ctx.reply(`To which account number do you want to transfer ${amount} VND?`);
-				return ctx.wizard.next();
-			}
+			await TransactionController.createTransaction(trans);
+			bot.telegram.sendMessage(ctx.from.id,'successful transaction');
 		}
 		else {
-			ctx.reply('Invalid amount. Please try again!');
+			bot.telegram.sendMessage(ctx.from.id,'Otp code is incorrect. Please try again!');
 			return;
+		}
+		return ctx.scene.leave();
+		}
+	);
+
+
+const registerWizard = new WizardScene('register-wizard',
+	async (ctx:any) =>{
+		await ctx.telegram.sendMessage(ctx.chat.id, "Please share your phone number", {
+			parse_mode: "Markdown",
+			reply_markup: {
+			  one_time_keyboard: true,
+			  resize_keyboard:true,
+			  keyboard: [
+				[
+				  {
+					text: "Confirm",
+					request_contact: true,
+				  },
+				  {
+					text: "Cancel",
+				  },
+				],
+			  ],
+			  force_reply: true,
+			},
+		  });
+
+		  return ctx.wizard.next();
+		},
+		 (ctx) => {
+			// Check user response 
+			if(ctx.message.contact?.phone_number){
+				ctx.session.phoneNumber = ctx.message.contact.phone_number;
+				bot.telegram.sendMessage(ctx.from.id,'Please enter your password(at least 8 characters, 1 letter and 1 special character)');
+				return ctx.wizard.next(); // Move to the next step in the wizard
+			} else if(ctx.message.text === 'Cancel'){
+				// User chose to cancel the registration process
+				 bot.telegram.sendMessage(ctx.from.id,'Okay, maybe another time!');
+				return ctx.scene.leave(); // End the wizard scene
+			} else {
+				// User did not choose any of the keyboard options
+				 bot.telegram.sendMessage(ctx.from.id,"Please use the buttons provided");
+			}
+		},
+	async (ctx) => {
+		if (UserController.validatePassword(ctx.message.text)) {
+			console.log(ctx.session.phoneNumber);
+			const data = {
+				teleId: ctx.from.id,
+				fullName: ctx.from.first_name + ctx.from.last_name,
+				phoneNumber: ctx.session.phoneNumber+'',
+				password: UserController.hashCode(ctx.message.text)
+			};
+			const create = await UserController.createUser(data);
+			if (create) {
+				bot.telegram.sendMessage(ctx.from.id,'successfully!');
+			}
+			else {
+				bot.telegram.sendMessage(ctx.from.id,'failed! account is used.');
+			}
+			return ctx.scene.leave();
+		}
+		else {
+			bot.telegram.sendMessage(ctx.from.id,'Invalid password. Please try again.');
+			return;
+		}
+	});
+
+
+const loginWizard = new WizardScene('login-wizard',
+	async (ctx: any) => {
+		const user = await UserController.getUser({ teleId: ctx.from.id + '' });
+		const isRegister = user != null ? true : false;
+		if (isRegister && !user.isLogin) {
+			bot.telegram.sendMessage(ctx.from.id,'Please enter your password');
+			//   Save user in ctx.session
+			ctx.session.user = user;
+			console.log(ctx.session.user);
+			return ctx.wizard.next();
+		}
+		else if (user.isLogin){
+			bot.telegram.sendMessage(ctx.from.id,'Login fail! You are logged in');
+			return ctx.scene.leave();
+		}
+		else {
+			bot.telegram.sendMessage(ctx.from.id,'You don\'t have account. Please /register a new account!');
+			return ctx.scene.leave();
 		}
 	},
 	async (ctx) => {
-		// console.log(ctx.message.text);
-		const  user = UserController.getUser({teleId:ctx.message.text});
-		if(!user){
-			ctx.reply('Not found account. Please try again!');
+		// Get user from session
+		const user = ctx.session.user;
+		const isPassword = bcrypt.compareSync(ctx.message.text, user.password);
+		if (isPassword) {
+			await UserController.updateLogin({ teleId: user.teleId + '',isLogin:true });
+			bot.telegram.sendMessage(ctx.from.id,'Login successful');
+			return ctx.scene.leave();
 		}
 		else {
-			
+			bot.telegram.sendMessage(ctx.from.id,'Your password is incorrect');
+			return;
 		}
-		// if(ctx.callbackQuery?.data ==='confirm'){
-		// 	// console.log(ctx.message.text);
-		// 	console.log('ok')
-		// }
-		// console.log(ctx.callbackQuery);
-		// check receiveId exists
-		// if(ctx.callbackQuery){
-		// if(UserController.getUser({teleId:ctx.message.text})){
-		// 	const receiveId = ctx.message.text;
-		// 	console.log(receiveId)
-
-		// }
-		// }
-		// if(UserController.getUser({teleId:ctx.message.text})){
-		// 	const receiveId = ctx.message.text;
-			
-		// }
-		// else{
-		// 	ctx.reply('TeleId is not exists. Please try again!');
-		// 	return;
-		// }
-		// ctx.scene.leave();
 	}
-)
-bot.hears('hi', (ctx) => ctx.reply('Hey there'));
-
-
-const stage = new Stage([registerWizard,loginWizard,transfer]);
+);
+bot.hears('hi', (ctx) => bot.telegram.sendMessage(ctx.from.id,'Hey there'));
+const stage = new Stage([registerWizard, loginWizard, transferByIdWizard]);
 
 bot.use(session());
 bot.use(stage.middleware());
+
+
 bot.command('register', (Stage.enter as any)('register-wizard'));
 bot.command('login', (Stage.enter as any)('login-wizard'));
-bot.command('transfer', (Stage.enter as any)('transfer-wizard'));
+bot.command('transfer', (Stage.enter as any)('transfer-by-id'));
+
+
+
 bot.launch();
-const app = express();
-app.use(express.json());
+
 
 app.listen(process.env.APP_PORT, () => {
 	console.log((`${process.env.APP_NAME} running on port ${process.env.APP_PORT}`))
