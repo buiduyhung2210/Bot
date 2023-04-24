@@ -9,6 +9,7 @@ interface UserAttributes {
   balance?: number,
   isLogin?: boolean,
   password?: string,
+  passwordLv2?: string,
   createdAt?: Date,
   updatedAt?: Date
 }
@@ -20,6 +21,7 @@ class User extends Model<UserAttributes, UserInput> implements UserAttributes {
   public id!: number;
   public fullName?: string;
   public password?: string;
+  public passwordLv2?: string;
   public phoneNumber?: string;
   public teleId!: string;
   public balance?: number;
@@ -46,6 +48,9 @@ User.init({
     type: DataTypes.STRING
   },
   password: {
+    type: DataTypes.STRING
+  },
+  passwordLv2:{
     type: DataTypes.STRING
   },
   phoneNumber: {

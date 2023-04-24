@@ -10,23 +10,23 @@ dotenv.config();
 const bot = new Telegraf(process.env.BOT_TOKEN)
 const { Stage, WizardScene } = Scenes;
 
-const helpMessage = `
-Say something to me
-/start - start bot
-/help - more command
-/login - login
-/register -register
-/balance - check your balance
-/transfer - transfer money
-/history - transaction history
-`;
+// const helpMessage = `
+// Say something to me
+// /start - start bot
+// /help - more command
+// /login - login
+// /register -register
+// /balance - check your balance
+// /transfer - transfer money
+// /history - transaction history
+// `;
 
 bot.start((ctx) => {
 	bot.telegram.sendMessage(ctx.from.id,'Hi i am a cool bot');
 })
 
-bot.help((ctx) => bot.telegram.sendMessage(ctx.from.id,helpMessage))
-bot.command('balance', async (ctx) => {
+// bot.help((ctx) => bot.telegram.sendMessage(ctx.from.id,helpMessage))
+bot.action('balance', async (ctx) => {
 	const data = { teleId: ctx.from.id + '' };
 	const user = await UserController.getUser(data);
 	if (user) {
@@ -59,11 +59,27 @@ const transferByIdWizard = new WizardScene('transfer-by-id',
 		const user = await UserController.getUser({teleId:ctx.from.id+''});
 		ctx.session.balance  = user.balance;
 		if(!user.isLogin){
-			bot.telegram.sendMessage(ctx.from.id,'Please login your account!');
+			let message ='Please login your account!'
+			ctx.deleteMessage();
+			bot.telegram.sendMessage(ctx.chat.id,message,{
+				reply_markup:{
+					inline_keyboard:[
+						[{text: 'Back to menu', callback_data:'Back to menu'}]
+					]
+				}
+			})
 			return ctx.scene.leave();
 		}
 		else {
-			bot.telegram.sendMessage(ctx.from.id,'Please enter reciver ID');
+			let message ='Please enter reciver ID'
+			ctx.deleteMessage();
+			bot.telegram.sendMessage(ctx.chat.id,message,{
+				reply_markup:{
+					inline_keyboard:[
+						[{text: 'Back to menu', callback_data:'Back to menu'}]
+					]
+				}
+			})
 
 		}
 		return ctx.wizard.next();
@@ -75,12 +91,28 @@ const transferByIdWizard = new WizardScene('transfer-by-id',
 		// 	Markup.button.callback('Cancel','cancel')
 		// ])
 		if (reciver && reciver.teleId!= ctx.from.id) {
-			bot.telegram.sendMessage(ctx.from.id,'Please enter amount of money');
+			let message ='Please enter amount of money'
+			ctx.deleteMessage();
+			bot.telegram.sendMessage(ctx.chat.id,message,{
+				reply_markup:{
+					inline_keyboard:[
+						[{text: 'Back to menu', callback_data:'Back to menu'}]
+					]
+				}
+			})
 			ctx.session.reciver = reciver.dataValues
 			return ctx.wizard.next();
 		}
 		else {
-			bot.telegram.sendMessage(ctx.from.id,'Invalid ID. Please try again.');
+			let message ='Invalid ID. Please try again.'
+			ctx.deleteMessage();
+			bot.telegram.sendMessage(ctx.chat.id,message,{
+				reply_markup:{
+					inline_keyboard:[
+						[{text: 'Back to menu', callback_data:'Back to menu'}]
+					]
+				}
+			})
 			// return ctx.wizard.selectStep(3);
 		}
 	},
@@ -197,18 +229,39 @@ const loginWizard = new WizardScene('login-wizard',
 		const user = await UserController.getUser({ teleId: ctx.from.id + '' });
 		const isRegister = user != null ? true : false;
 		if (isRegister && !user.isLogin) {
-			bot.telegram.sendMessage(ctx.from.id,'Please enter your password');
+			let message ='Please enter your password'
+			bot.telegram.sendMessage(ctx.chat.id,message,{
+			reply_markup:{
+				inline_keyboard:[
+					[{text: 'Back to menu', callback_data:'Back to menu'}]
+				]
+			}
+		})
 			//   Save user in ctx.session
 			ctx.session.user = user;
 			console.log(ctx.session.user);
 			return ctx.wizard.next();
 		}
 		else if (user.isLogin){
-			bot.telegram.sendMessage(ctx.from.id,'Login fail! You are logged in');
+			let message ='Login fail! You are logged in'
+			bot.telegram.sendMessage(ctx.chat.id,message,{
+			reply_markup:{
+				inline_keyboard:[
+					[{text: 'Back to menu', callback_data:'Back to menu'}]
+				]
+			}
+		})
 			return ctx.scene.leave();
 		}
 		else {
-			bot.telegram.sendMessage(ctx.from.id,'You don\'t have account. Please /register a new account!');
+			let message ='You don\'t have account. Please /register a new account!'
+			bot.telegram.sendMessage(ctx.chat.id,message,{
+			reply_markup:{
+				inline_keyboard:[
+					[{text: 'Back to menu', callback_data:'Back to menu'}]
+				]
+			}
+		})
 			return ctx.scene.leave();
 		}
 	},
@@ -218,27 +271,142 @@ const loginWizard = new WizardScene('login-wizard',
 		const isPassword = bcrypt.compareSync(ctx.message.text, user.password);
 		if (isPassword) {
 			await UserController.updateLogin({ teleId: user.teleId + '',isLogin:true });
-			bot.telegram.sendMessage(ctx.from.id,'Login successful');
+			let message ='Login successful'
+			bot.telegram.sendMessage(ctx.chat.id,message,{
+			reply_markup:{
+				inline_keyboard:[
+					[{text: 'Back to menu', callback_data:'Back to menu'}]
+				]
+			}
+		})
 			return ctx.scene.leave();
 		}
 		else {
-			bot.telegram.sendMessage(ctx.from.id,'Your password is incorrect');
+			let message ='Your password is incorrect'
+			bot.telegram.sendMessage(ctx.chat.id,message,{
+			reply_markup:{
+				inline_keyboard:[
+					[{text: 'Back to menu', callback_data:'Back to menu'}]
+				]
+			}
+		})
 			return;
 		}
 	}
 );
+
+const faces = ['Bầu', 'Tôm', 'Cua', 'Cá', 'Nai', 'Gà'];
+const selectedFaces: string[] = [];
+let bet =0
+const eventWizard = new WizardScene('event-wizard',
+	async (ctx: any) => {
+		const user = await UserController.getUser({teleId:ctx.from.id+''});
+		ctx.session.balance  = user.balance;
+			if (!user.isLogin){
+				bot.telegram.sendMessage(ctx.from.id,'Please login your account!');
+				return ctx.scene.leave();
+			}
+			else{ 
+				await bot.telegram.sendMessage(ctx.from.id,'Welcome to the game earn money');
+				await bot.telegram.sendMessage(ctx.from.id, 'Enter 1 side bet amount: ')
+				return ctx.wizard.next();
+			}},
+	async(ctx)=>{
+		const user = await UserController.getUser({teleId:ctx.from.id+''});
+		bet = parseInt(ctx.message.text);
+		if (parseInt(ctx.message.text)*3 > user.balance || parseInt(ctx.message.text) <= 0){
+			await bot.telegram.sendMessage(ctx.from.id,'Invalid balance');
+			return ctx.scene.leave(); 
+		}else{
+			await UserController.updateBalance({ teleId: ctx.from.id, money: user.balance- (bet*3) })
+			bot.telegram.sendMessage(ctx.from.id,'Choose 3 faces')
+			return ctx.wizard.next();
+		}
+	},
+
+	async (ctx) => {
+			await bot.telegram.sendMessage(ctx.from.id,'Choose 3 faces')
+    		const selectedFace = ctx.message.text;
+  			if (!selectedFaces.includes(selectedFace)) {
+    			selectedFaces.push(selectedFace);
+    			await ctx.reply(`Bạn đã chọn ${selectedFace}`);
+  			}else {
+    			ctx.reply(`${selectedFace} đã được chọn trước đó!`);
+  			}
+  		if (selectedFaces.length === 3) {
+    	rollDice(ctx);}
+
+		function rollDice(ctx:any) {
+		const diceFaces = ['Bầu', 'Tôm', 'Cua', 'Cá', 'Nai', 'Gà'];
+		const result = [];
+		for (let i = 0; i < 3; i++) {
+	  		const randomIndex = Math.floor(Math.random() * diceFaces.length);
+	  		result.push(diceFaces[randomIndex]);
+		}
+		const count = result.filter((face) => selectedFaces.includes(face)).length;
+		let message = `Kết quả quay xúc xắc: ${result.join(', ')}\n`;
+		if (count > 0) {
+	  		const prize = count*bet ;
+	  		message += `Bạn trúng giải ${count} ô và nhận được ${prize} VNĐ! 🎉`;
+			UserController.updateBalance({ teleId: ctx.from.id, money: ctx.session.balance + prize })
+
+		} else {
+	  		message += 'Rất tiếc, bạn không trúng giải nào! 😔';
+		}
+		ctx.reply(message);
+		selectedFaces.length = 0;
+		return ctx.scene.leave();
+  }
+}
+);
+
+
 bot.hears('hi', (ctx) => bot.telegram.sendMessage(ctx.from.id,'Hey there'));
-const stage = new Stage([registerWizard, loginWizard, transferByIdWizard]);
+const stage = new Stage([registerWizard, loginWizard, transferByIdWizard,eventWizard]);
 
 bot.use(session());
 bot.use(stage.middleware());
 
 
-bot.command('register', (Stage.enter as any)('register-wizard'));
-bot.command('login', (Stage.enter as any)('login-wizard'));
-bot.command('transfer', (Stage.enter as any)('transfer-by-id'));
+bot.action('register', (Stage.enter as any)('register-wizard'));
+bot.action('login', (Stage.enter as any)('login-wizard'));
+bot.action('transfer', (Stage.enter as any)('transfer-by-id'));
+bot.command('event', (Stage.enter as any)('event-wizard'));
+bot.command('help',ctx=> {
+	bot.telegram.sendMessage(ctx.chat.id,'Help',{
+		reply_markup:{
+			inline_keyboard:[
+				[{text: 'See list help', callback_data: 'Click'}]
+			]
+		}
+	})
+})
 
 
+bot.action('Click', ctx =>{
+	ctx.deleteMessage();
+	bot.telegram.sendMessage(ctx.chat.id,'Help list',{
+		reply_markup:{
+			inline_keyboard:[
+			[{text: 'login',callback_data: 'login'},
+			{text: 'register',callback_data: 'register'}],
+			[{text: 'balance',callback_data: 'balance'},
+			{text: 'transfer',callback_data: 'transfer'}],
+			[{text: 'Back to menu', callback_data:'Back to menu'}]					
+			]
+		}
+	} )
+})
+bot.action('Back to menu',ctx=> {
+	ctx.deleteMessage();
+	bot.telegram.sendMessage(ctx.chat.id,'help',{
+		reply_markup:{
+			inline_keyboard:[
+				[{text: 'See list help', callback_data: 'Click'}]
+			]
+		}
+	} )
+})
 
 bot.launch();
 
