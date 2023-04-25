@@ -13,6 +13,9 @@ module.exports = {
       fullName: {
         type: Sequelize.STRING
       },
+      phoneNumber: {
+        type: Sequelize.STRING,
+      },
       teleId: {
         type: Sequelize.STRING,
         unique: true

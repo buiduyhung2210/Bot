@@ -4,10 +4,12 @@ import connection from "../../config/dbConnect";
 interface UserAttributes {
   id?: number,
   fullName?: string | null,
+  phoneNumber?: string,
   teleId: string | null,
   balance?: number,
-  password?: string,
   isLogin?: boolean,
+  password?: string,
+  passwordLv2?: string,
   createdAt?: Date,
   updatedAt?: Date
 }
@@ -17,11 +19,15 @@ export interface UserOutput extends Required<UserAttributes> { }
 
 class User extends Model<UserAttributes, UserInput> implements UserAttributes {
   public id!: number;
-  public fullName!: string;
+  public fullName?: string;
+  public password?: string;
+  public passwordLv2?: string;
+  public phoneNumber?: string;
   public teleId!: string;
   public balance?: number;
-  public password!: string;
   public isLogin?: boolean;
+
+
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -34,28 +40,35 @@ User.init({
     type: DataTypes.INTEGER
   },
   fullName: {
-    type: DataTypes.STRING
-  },
-  password: {
+    allowNull: true,
     type: DataTypes.STRING
   },
   teleId: {
     unique: true,
     type: DataTypes.STRING
   },
+  password: {
+    type: DataTypes.STRING
+  },
+  passwordLv2:{
+    type: DataTypes.STRING
+  },
+  phoneNumber: {
+    type: DataTypes.STRING
+  },
   balance: {
     type: DataTypes.NUMBER,
     defaultValue: 0,
   },
-  isLogin: {
+  isLogin:{
     type: DataTypes.BOOLEAN,
-    defaultValue: false
+    defaultValue:false
   }
 }, {
   timestamps: true,
   sequelize: connection,
   underscored: false,
-  tableName: "user"
+  tableName: "User"
 });
 
 export default User;
