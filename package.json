@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "engines": { 
+  "engines": {
     "node": "14.x"
   },
   "scripts": {
@@ -29,6 +29,6 @@
     "mysql2": "^2.3.3",
     "sequelize": "^6.25.5",
     "telegraf": "^4.12.2",
-    "twilio": "^4.9.0"
+    "twilio": "^4.10.0"
   }
 }
